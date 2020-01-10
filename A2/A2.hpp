@@ -128,7 +128,7 @@ protected:
 	bool mouse_mid_pressed;
 	bool mouse_right_pressed;
 
-	GLfloat angleBase = 250.0f;
+	GLfloat angleBase;
 	GLfloat numBase = 50.0f;
 	// A2 functions:
 	

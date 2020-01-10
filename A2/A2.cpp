@@ -85,6 +85,7 @@ A2::~A2()
  */
 void A2::init()
 {
+	angleBase = m_windowWidth / 3.14159265f;
 	reset();
 	// Set the background colour.
 	glClearColor(0.3, 0.5, 0.7, 1.0);
@@ -738,7 +739,17 @@ void A2::mouseMoveEventHandler(double xPos, double yPos){
 				rotateModelHandler(offset, 2);
 			}
 		break;
-		
+		case 4: //Tranlation
+		if(mouse_left_pressed){
+				translateModelHandler(offset, 0);
+			}
+			if(mouse_mid_pressed){
+				translateModelHandler(offset, 1);
+			}
+			if(mouse_right_pressed){
+				translateModelHandler(offset, 2);
+			}
+		break;
 	}
 }
 
@@ -778,7 +789,26 @@ void A2::rotateModelHandler(double offset, int axis){
 	) * modelTransfer;
 }
 void A2::translateModelHandler(double offset, int axis){
+	GLfloat r = offset/angleBase; // rotation angle
+	glm::vec3 a;
+	switch(axis){
+		case 0:  // x axis
+			a = glm::vec3(r, 0.0f, 0.0f);
+			break;
+		case 1: // y axis
+			a = glm::vec3(0.0f, r, 0.0f);
+			break;
+		case 2: // z axis
+			a = glm::vec3(0.0f, 0.0f, r);
+			break;
+	}
 
+	modelTransfer = glm::mat4(
+		glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+		glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+		glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+		glm::vec4(a.x, a.y, a.z, 1.0f)
+	) * modelTransfer;
 }
 
 void A2::scaleModelHandler(double offset, int axis){
