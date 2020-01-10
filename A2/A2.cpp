@@ -30,10 +30,11 @@ pair<int, int> cubeIndexPair[12] = {
 	{6, 7},
 }; 
 
-pair<int, int> axisIndexPair[3] = {
-	{0, 1},
-	{0, 2},
-	{0, 3},
+pair<int, int> axisIndexPair[4] = {
+	{0, 6}, //center
+	{1, 6}, //forward
+	{3, 6}, //left
+	{4, 6} //up
 }; 
 
 static const glm::vec3 cube_vertex[8]=
@@ -237,7 +238,7 @@ void A2::appLogic()
 
 	// execute pipeline handler draw the cube
 	CubeHandler();
-
+	GnomonHandler();
 }
 
 //----------------------------------------------------------------------------------------
@@ -528,6 +529,7 @@ void A2::CubeHandler(){
 	glm::vec4 cube_vec4_VCS[8];
 	for( int i = 0 ; i < 8 ; i++){
 		cube_vec4_VCS[i] = viewTransfer * cube_vec4_WCS[i];
+		VCS_cube_vertex[i] = cube_vec4_VCS[i];
 	};
 
 	int easyClipFlag[12] = {0};  
@@ -572,8 +574,47 @@ void A2::CubeHandler(){
 /*
  * Frame handler, process the frame info and update vertexs ready for draw.
  */
-void A2::GnomonHandler(glm::vec4 new_base_0, glm::vec4 new_base_x, glm::vec4 new_base_y, glm::vec4 new_base_z, int type){
+void A2::GnomonHandler(){
+	// method 1: just take the center point of vertices in perspective view
+
+	// glm::vec2 center = (perspective_cube_vertex_2D[axisIndexPair[0].first] + perspective_cube_vertex_2D[axisIndexPair[0].second]) * 0.5f;
+	// glm::vec2 forward = (perspective_cube_vertex_2D[axisIndexPair[1].first] + perspective_cube_vertex_2D[axisIndexPair[1].second]) * 0.5f;
+	// glm::vec2 left = (perspective_cube_vertex_2D[axisIndexPair[2].first] + perspective_cube_vertex_2D[axisIndexPair[2].second]) * 0.5f;
+	// glm::vec2 up = (perspective_cube_vertex_2D[axisIndexPair[3].first] + perspective_cube_vertex_2D[axisIndexPair[3].second]) * 0.5f;
+	// drawLine(center, forward);
+	// drawLine(center, left);
+	// drawLine(center, up);
+
+	// method 2:
+
+	// Cube Gnomon 
+	glm::vec4 center = (VCS_cube_vertex[axisIndexPair[0].first] + VCS_cube_vertex[axisIndexPair[0].second]) * 0.5f;
+	glm::vec4 forward = (VCS_cube_vertex[axisIndexPair[1].first] + VCS_cube_vertex[axisIndexPair[1].second]) * 0.5f;
+	glm::vec4 left = (VCS_cube_vertex[axisIndexPair[2].first] + VCS_cube_vertex[axisIndexPair[2].second]) * 0.5f;
+	glm::vec4 up = (VCS_cube_vertex[axisIndexPair[3].first] + VCS_cube_vertex[axisIndexPair[3].second]) * 0.5f;
 	
+	drawPerspectiveLine(center, forward, modelFrame_color[2]);
+	drawPerspectiveLine(center, left, modelFrame_color[0]);
+	drawPerspectiveLine(center, up, modelFrame_color[1]);
+
+	// World Gnomon 
+	drawPerspectiveLine(viewTransfer * base_0, viewTransfer * base_z, worldFrame_color[2]);
+	drawPerspectiveLine(viewTransfer * base_0, viewTransfer * base_x, worldFrame_color[0]);
+	drawPerspectiveLine(viewTransfer * base_0, viewTransfer * base_y, worldFrame_color[1]);
+}
+
+//----------------------------------------------------------------------------------------
+/*
+ * draw a line in perspective view, given two vec4 points
+ */
+void A2::drawPerspectiveLine(glm::vec4 point1, glm::vec4 point2, glm::vec3 color){
+	pair<glm::vec2, glm::vec2 > perspectiveLine;
+	perspectiveLine.first.x = (point1.x/point1.z)/(tan(fov/2.0f/180.0f*M_PI));
+	perspectiveLine.second.x = (point2.x/point2.z)/(tan(fov/2.0f/180.0f*M_PI));
+	perspectiveLine.first.y = (point1.y/point1.z)/(tan(fov/2.0f/180.0f*M_PI));
+	perspectiveLine.second.y = (point2.y/point2.z)/(tan(fov/2.0f/180.0f*M_PI));
+	setLineColour(color);
+	drawLine(perspectiveLine.first, perspectiveLine.second);
 }
 
 //----------------------------------------------------------------------------------------
@@ -665,7 +706,7 @@ void A2::sortTwoPoints(glm::vec2 &P1, glm::vec2 &P2, int base){
  */
 
 glm::mat4 A2::calculateView(){
-	glm::vec3 forward = glm::normalize(eye_origin - world_origin);
+	glm::vec3 forward = glm::normalize(world_origin - eye_origin);
 	glm::vec3 tmp_up = glm::vec3(0.0f, 1.0f, 0.0f);
 	glm::vec3 left = glm::normalize(glm::cross(tmp_up,forward));
 	glm::vec3 up = glm::normalize(glm::cross(forward, left));
@@ -696,7 +737,8 @@ void A2::mouseMoveEventHandler(double xPos, double yPos){
 			if(mouse_right_pressed){
 				rotateModelHandler(offset, 2);
 			}
-			
+		break;
+		
 	}
 }
 

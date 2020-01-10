@@ -88,6 +88,10 @@ protected:
 	glm::vec4 base_z = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 	glm::vec4 base_0 = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
+	// perspective vertix in 2D
+	glm::vec2 perspective_cube_vertex_2D[8];
+	glm::vec4 VCS_cube_vertex[8];
+
 	// base for model
 	glm::vec4 model_base_x_i = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 	glm::vec4 model_base_y_i = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
@@ -130,8 +134,9 @@ protected:
 	
 	// handlers:
 	void CubeHandler(); // helper functin that process the cube data and draw the cube
-	void GnomonHandler(glm::vec4 new_base_0, glm::vec4 new_base_x, glm::vec4 new_base_y, glm::vec4 new_base_z, int type); // helper function that process model frame info and draw the axis
+	void GnomonHandler(); // helper function that process model frame info and draw the axis
 	void mouseMoveEventHandler(double xPos, double yPos);
+	void drawPerspectiveLine(glm::vec4 point1, glm::vec4 point2, glm::vec3 color);
 
 	// mode handler
 	void rotateViewHandler(double offset, int axis);
