@@ -1,9 +1,11 @@
-// Winter 2020
+// Spring 2019
 
 #include "A2.hpp"
 #include "cs488-framework/GlErrorCheck.hpp"
 
 #include <iostream>
+#include <utility> 
+#include <math.h>
 using namespace std;
 
 #include <imgui/imgui.h>
@@ -12,20 +14,6 @@ using namespace std;
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/io.hpp>
 using namespace glm;
-
-static const glm::vec3 cube_vertex[8] =
-{
-	//bot x y z
-	glm::vec3(-1.0f,  -1.0f, -1.0f), //0
-	glm::vec3(-1.0f,  -1.0f,  1.0f), //1
-	glm::vec3( 1.0f,  -1.0f,  1.0f), //2
-	glm::vec3( 1.0f,  -1.0f, -1.0f), //3
-	//top
-	glm::vec3(-1.0f,  1.0f,  -1.0f), //4
-	glm::vec3(-1.0f,  1.0f,   1.0f), //5
-	glm::vec3( 1.0f,  1.0f,   1.0f), //6
-	glm::vec3( 1.0f,  1.0f,  -1.0f), //7
-};
 
 pair<int, int> cubeIndexPair[12] = {
 	{0, 1},
@@ -40,7 +28,28 @@ pair<int, int> cubeIndexPair[12] = {
 	{4, 7},
 	{5, 6},
 	{6, 7},
+}; 
+
+pair<int, int> axisIndexPair[3] = {
+	{0, 1},
+	{0, 2},
+	{0, 3},
+}; 
+
+static const glm::vec3 cube_vertex[8]=
+{
+	//bot x y z
+	glm::vec3(-1.0f,  -1.0f, -1.0f), //0
+	glm::vec3(-1.0f,  -1.0f,  1.0f), //1
+	glm::vec3( 1.0f,  -1.0f,  1.0f), //2
+	glm::vec3( 1.0f,  -1.0f, -1.0f), //3
+	//top
+	glm::vec3(-1.0f,  1.0f,  -1.0f), //4
+	glm::vec3(-1.0f,  1.0f,   1.0f), //5
+	glm::vec3( 1.0f,  1.0f,   1.0f), //6
+	glm::vec3( 1.0f,  1.0f,  -1.0f), //7
 };
+
 
 //----------------------------------------------------------------------------------------
 // Constructor
@@ -58,6 +67,7 @@ VertexData::VertexData()
 A2::A2()
 	: m_currentLineColour(vec3(0.0f))
 {
+	
 
 }
 
@@ -87,6 +97,9 @@ void A2::init()
 	generateVertexBuffers();
 
 	mapVboDataToVertexAttributeLocation();
+
+	
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -98,7 +111,7 @@ void A2::createShaderProgram()
 	m_shader.link();
 }
 
-//---------------------------------------------------------------------------------------- Winter 2020
+//---------------------------------------------------------------------------------------- Winter 2019
 void A2::enableVertexAttribIndices()
 {
 	glBindVertexArray(m_vao);
@@ -221,15 +234,10 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
-	// Draw cube
-	drawCube();
 
-	// Draw inner square:
-	setLineColour(vec3(0.2f, 1.0f, 1.0f));
-	drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));
-	drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
-	drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
-	drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
+	// execute pipeline handler draw the cube
+	CubeHandler();
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -254,12 +262,27 @@ void A2::guiLogic()
 
 		// Add more gui elements here here ...
 
+		for (int i = 0; i < 7; i++) {
+            ImGui::PushID(i);
+            if (ImGui::RadioButton(Mode[i].c_str(), &interactionMode, i)) {
+                
+            }
+		    ImGui::PopID();
+        }
+
 
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
 
+		if( ImGui::Button( "Reset Application" ) ) {
+			reset();
+		}
+
+		ImGui::Text("Near Plane: %.1f", nearPlane);
+		ImGui::Text("Far Plane: %.1f", farPlane);
+		ImGui::Text("FOV: %.1f", fov);
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
 	ImGui::End();
@@ -343,6 +366,20 @@ bool A2::mouseMoveEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+
+		if(mouseReseted){
+			mouseReseted = false;
+			mouse_prev_x = xPos;
+			mouse_prev_y = yPos;
+		}
+		if(mouse_left_pressed||mouse_mid_pressed||mouse_right_pressed){
+			mouseMoveEventHandler(xPos, yPos);
+			eventHandled = true;
+		}
+		mouse_prev_x = xPos;
+		mouse_prev_y = yPos;
+	}
 
 	return eventHandled;
 }
@@ -359,6 +396,56 @@ bool A2::mouseButtonInputEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+		
+		if (button == GLFW_MOUSE_BUTTON_LEFT){
+			if (actions == GLFW_PRESS) {
+				if( interactionMode == 6 ){ // set y2
+					viewPortHandler(mouse_prev_x, mouse_prev_y,1);
+					viewPortHandler(mouse_prev_x, mouse_prev_y,2);
+				}
+				if(!mouse_left_pressed && !mouse_mid_pressed && !mouse_right_pressed){
+					resetMouseLocation();
+				}
+				mouse_left_pressed = true;
+				
+			}
+	
+			if (actions == GLFW_RELEASE) {
+				mouse_left_pressed = false;
+			}
+		}
+
+		if (button == GLFW_MOUSE_BUTTON_MIDDLE){
+			if (actions == GLFW_PRESS) {
+				if(!mouse_left_pressed && !mouse_mid_pressed && !mouse_right_pressed){
+					resetMouseLocation();
+				}
+				mouse_mid_pressed = true;
+				
+			}
+	
+			if (actions == GLFW_RELEASE) {
+				mouse_mid_pressed = false;
+			}
+		}
+
+		if (button == GLFW_MOUSE_BUTTON_RIGHT){
+			if (actions == GLFW_PRESS) {
+				if(!mouse_left_pressed && !mouse_mid_pressed && !mouse_right_pressed){
+					resetMouseLocation();
+				}
+				mouse_right_pressed = true;
+				
+			}
+	
+			if (actions == GLFW_RELEASE) {
+				mouse_right_pressed = false;
+			}
+		}
+		
+
+	}
 
 	return eventHandled;
 }
@@ -405,114 +492,118 @@ bool A2::keyInputEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	if( action == GLFW_PRESS ) {
+		
+	}
+
 
 	return eventHandled;
 }
 
-void A2::drawCube(){
-	// Step 0. Scale cube
+
+//----------------------------------------------------------------------------------------
+/*
+ * Pipeline handler, process the cube info and update vertexs ready for draw.
+ */
+
+void A2::CubeHandler(){
+	// Scaling
 	glm::vec3 cube_vertex_scaled[8];
 	for(int i = 0; i < 8; i++){
 		cube_vertex_scaled[i].x = cube_vertex[i].x * scale_X;
 		cube_vertex_scaled[i].y = cube_vertex[i].y * scale_Y;
 		cube_vertex_scaled[i].z = cube_vertex[i].z * scale_Z;
 	}
-
-	// Step 1. Convert to vec4
+	// Convert to vec4 for mat4 multiplication
 	glm::vec4 cube_vec4_temp[8];
 	for( int i = 0 ; i < 8 ; i++){
 		cube_vec4_temp[i] = vec4(cube_vertex_scaled[i], 1.0f);
 	}
-
-	// Step 2. Modelling Transformations
+	// WCS
 	glm::vec4 cube_vec4_WCS[8];
 	for( int i = 0 ; i < 8 ; i++){
 		cube_vec4_WCS[i] = modelTransfer * cube_vec4_temp[i];
 	};
-
-	// Step 3. View Transformations
-
+	// VCS
 	glm::vec4 cube_vec4_VCS[8];
 	for( int i = 0 ; i < 8 ; i++){
 		cube_vec4_VCS[i] = viewTransfer * cube_vec4_WCS[i];
 	};
 
-	// Step 4. Projection and clipping
-
-	// Step 4.1 Clipping
-
-	// Step 4.1.1 trivial condition (both < near > far and reverse order for first z < second z)
-	int easyClipFlag[12] = {0};  // 1 for pass; -1 for neg pass; 0 for fail
+	int easyClipFlag[12] = {0};  
 	for(int i = 0 ; i < 12; i++){
-		//easyClipFlag[i] = easyClipping(cube_vec4_VCS, cubeIndexPair, i);
 		easyClipFlag[i] = 1;
 	}
 
-	// step 4.1.2 clip to two planes
 	for (int i = 0;  i < 12 ; i++){
 		
 		if(easyClipFlag[i] == 0){
 			continue;
 		}
 
-		pair<glm::vec4, glm::vec4 > currentPair;
+		pair<glm::vec4, glm::vec4 > tmpLine;
 		int firstIndex = cubeIndexPair[i].first;
 		int secondIndex = cubeIndexPair[i].second;
-		if(easyClipFlag[i] == 1){
-			currentPair.first = cube_vec4_VCS[firstIndex];
-			currentPair.second = cube_vec4_VCS[secondIndex];
-		}else{// when second z > first z
-			currentPair.first = cube_vec4_VCS[secondIndex];
-			currentPair.second = cube_vec4_VCS[firstIndex];
-		}
+		tmpLine.first = cube_vec4_VCS[firstIndex];
+		tmpLine.second = cube_vec4_VCS[secondIndex];
 		
-		// ini done
-		// clip to two planes
-		// clip to near plane, check second only since first.z > second.z
-		if(currentPair.second.z < nearPlane){ // clip required
-			currentPair.second = currentPair.second + 
-				(currentPair.first - currentPair.second) * 
-					(nearPlane - currentPair.second.z) / (
-						currentPair.first.z - currentPair.second.z);
-		}
+		/* compute half width of frustum: left=-width, right=width */
+		/* fovy is radian, and aspectRatio=w/h  */
+		// width = near x tan(fovy/2) x aspectRatio;
 
-		// clip to far plane, check first only since first.z > second.z
-		if(currentPair.first.z > farPlane){ // clip required
-			currentPair.first = currentPair.second + 
-				(currentPair.first - currentPair.second) * 
-					(farPlane - currentPair.second.z) / (
-						currentPair.first.z - currentPair.second.z);
-		}
-
-		// first clip done
-
-		// step 4.2 Projection
-		// use easy approach x -> x/z y -> y/z for now
-		pair<glm::vec2, glm::vec2 > displayPair;
-		displayPair.first.x = (currentPair.first.x/currentPair.first.z)/(tan(fov/2.0f/180.0f*M_PI));
-		displayPair.second.x = (currentPair.second.x/currentPair.second.z)/(tan(fov/2.0f/180.0f*M_PI));
-		displayPair.first.y = (currentPair.first.y/currentPair.first.z)/(tan(fov/2.0f/180.0f*M_PI));
-		displayPair.second.y = (currentPair.second.y/currentPair.second.z)/(tan(fov/2.0f/180.0f*M_PI));
-
-		// projection done
-		// step 4.3 clip to viewing volume
-		// add helper function here
-		//bool needDraw = clipAndTtoViewPoint(displayPair);
-		bool needDraw = true;
-
-		// draw line
-		if(needDraw){
-			setLineColour(vec3(0.8f, 1.0f, 1.0f));
-			drawLine(displayPair.first, displayPair.second);
-		}
+		/* compute n / r */
+		// matrix00 = near / width
+        // = near / (near x tan(fovy/2) x aspectRatio)
+        // = 1 / (tan(fovy/2) x aspectRatio);
+		pair<glm::vec2, glm::vec2 > perspectiveLine;
+		perspectiveLine.first.x = (tmpLine.first.x/tmpLine.first.z)/(tan(fov/2.0f/180.0f*M_PI));
+		perspectiveLine.second.x = (tmpLine.second.x/tmpLine.second.z)/(tan(fov/2.0f/180.0f*M_PI));
+		perspectiveLine.first.y = (tmpLine.first.y/tmpLine.first.z)/(tan(fov/2.0f/180.0f*M_PI));
+		perspectiveLine.second.y = (tmpLine.second.y/tmpLine.second.z)/(tan(fov/2.0f/180.0f*M_PI));
+		
+		setLineColour(vec3(0.8f, 1.0f, 1.0f));
+		drawLine(perspectiveLine.first, perspectiveLine.second);
 	}
+
+
 }
 
+//----------------------------------------------------------------------------------------
+/*
+ * Frame handler, process the frame info and update vertexs ready for draw.
+ */
+void A2::GnomonHandler(glm::vec4 new_base_0, glm::vec4 new_base_x, glm::vec4 new_base_y, glm::vec4 new_base_z, int type){
+	
+}
+
+//----------------------------------------------------------------------------------------
+
+/*
+ *  reset function and its helper functions.
+ */
+
 void A2::reset(){
+	//reset selection
+	interactionMode = 3;
+	mouse_left_pressed = false;
+	mouse_mid_pressed = false;
+	mouse_right_pressed = false;
+	
 	// reset scale
 	scale_X = 1.0f;
 	scale_Y = 1.0f;
 	scale_Z = 1.0f;
+
+	// reset base for model
+
+	model_base_x_i = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	model_base_y_i = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+	model_base_z_i = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
+
+	eye_origin = glm::vec3(0.0f, 0.0f, 10.0f);
+	world_origin = glm::vec3(0.0f, 0.0f, 0.0f);
+	cube_origin = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	modelTransfer = glm::mat4(
 					glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), // x
@@ -520,9 +611,141 @@ void A2::reset(){
 					glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), // z
 					glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)); // w
 
-	viewTransfer = mat4();
+	viewTransfer = calculateView();
+	
+	resetFOV();
+	resetVP();
+}
 
+void A2::resetFOV(){
 	nearPlane = 5.0f;
 	farPlane = 15.0f;
 	fov = 30.0f;
 }
+
+void A2::resetVP(){
+	vp1 = glm::vec2(-0.9f, 0.9f);
+	vp2 = glm::vec2( 0.9f, -0.9f);
+}
+
+void A2::resetMouseLocation(){
+
+}
+
+//----------------------------------------------------------------------------------------
+
+/*
+ *  trivial clipping test return 0 for remove, 1 for keep, -1 for reverse keep.
+ */
+int A2::easyClipping(glm::vec4 *cube_vec4_VCS, std::pair<int, int> *indexPair, int index){
+
+}
+
+//----------------------------------------------------------------------------------------
+/*
+ *  view volume clipping and transfer to view point helper function.
+ *  input pair 
+ */
+bool A2::clipAndTtoViewPoint(pair<glm::vec2, glm::vec2 > &input2DPair){
+
+}
+
+/*
+ *  helper function to sort two points base on x(base = 0) or y (base = 1); 
+ */
+void A2::sortTwoPoints(glm::vec2 &P1, glm::vec2 &P2, int base){
+
+}
+
+
+//----------------------------------------------------------------------------------------
+
+/*
+ *  calculate worldtoview matrix follow uvn base
+ */
+
+glm::mat4 A2::calculateView(){
+	glm::vec3 forward = glm::normalize(eye_origin - world_origin);
+	glm::vec3 tmp_up = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 left = glm::normalize(glm::cross(tmp_up,forward));
+	glm::vec3 up = glm::normalize(glm::cross(forward, left));
+
+	glm::mat4 view = glm::mat4(
+		glm::vec4(left.x, up.x, forward.x, 0.0f),
+		glm::vec4(left.y, up.y, forward.y, 0.0f),
+		glm::vec4(left.z, up.z, forward.z, 0.0f),
+		glm::vec4(-glm::dot(eye_origin,left), -glm::dot(eye_origin,up), -glm::dot(eye_origin,forward), 1)
+	);
+
+	return view;
+}
+
+//----------------------------------------------------------------------------------------
+
+// mouse movement handler
+void A2::mouseMoveEventHandler(double xPos, double yPos){
+	double offset = xPos - mouse_prev_x;
+	switch(interactionMode){
+		case 3: //Rotate model
+			if(mouse_left_pressed){
+				rotateModelHandler(offset, 0);
+			}
+			if(mouse_mid_pressed){
+				rotateModelHandler(offset, 1);
+			}
+			if(mouse_right_pressed){
+				rotateModelHandler(offset, 2);
+			}
+			
+	}
+}
+
+//----------------------------------------------------------------------------------------
+// mode handlers
+
+void A2::rotateViewHandler(double offset, int axis){
+	
+}
+void A2::translateViewHandler(double offset, int axis){
+
+
+}
+void A2::perspectiveHanlder(double offset, int type){
+
+}
+void A2::rotateModelHandler(double offset, int axis){
+	GLfloat r = offset/angleBase; // rotation angle
+	glm::vec3 a;
+	switch(axis){
+		case 0:  // x axis
+			a = glm::vec3(1.0f, 0.0f, 0.0f);
+			break;
+		case 1: // y axis
+			a = glm::vec3(0.0f, 1.0f, 0.0f);
+			break;
+		case 2: // z axis
+			a = glm::vec3(0.0f, 0.0f, 1.0f);
+			break;
+	}
+
+	modelTransfer = glm::mat4(
+		glm::vec4(a.x * a.x * (1 - cos(r)) + cos(r),       a.x * a.y * (1 - cos(r)) + a.z * sin(r),  a.x * a.z * (1 - cos(r)) - a.y * sin(r), 0.0f),
+		glm::vec4(a.x * a.y * (1 - cos(r)) - a.z * sin(r), a.y * a.y * (1 - cos(r)) + cos(r),        a.y * a.z * (1 - cos(r)) + a.x * sin(r), 0.0f),
+		glm::vec4(a.x * a.z * (1 - cos(r)) + a.y * sin(r), a.y * a.z * (1 - cos(r)) - a.x * sin(r),  a.z * a.z * (1 - cos(r)) + cos(r),       0.0f),
+		glm::vec4(0.0f,                                    0.0f,                                     0.0f,                                    1.0f)
+	) * modelTransfer;
+}
+void A2::translateModelHandler(double offset, int axis){
+
+}
+
+void A2::scaleModelHandler(double offset, int axis){
+	
+}
+
+void A2::viewPortHandler(double xPos, double yPos, int id){
+	
+}
+
+//----------------------------------------------------------------------------------------
+
