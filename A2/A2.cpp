@@ -236,6 +236,12 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
+	// Draw the viewport
+	setLineColour(vec3(0.6f, 0.9f, 0.4f));
+	drawLine(topLeftVP, vec2(topLeftVP.x, botRightVP.y));//left
+	drawLine(topLeftVP, vec2(botRightVP.x, topLeftVP.y));//top
+	drawLine(botRightVP, vec2(topLeftVP.x, botRightVP.y));//bot
+	drawLine(botRightVP, vec2(botRightVP.x, topLeftVP.y));//right
 
 	// execute pipeline handler draw the cube
 	CubeHandler();
@@ -547,8 +553,10 @@ void A2::CubeHandler(){
 		pair<glm::vec4, glm::vec4 > tmpLine;
 		int firstIndex = cubeIndexPair[i].first;
 		int secondIndex = cubeIndexPair[i].second;
-		tmpLine.first = cube_vec4_VCS[firstIndex];
-		tmpLine.second = cube_vec4_VCS[secondIndex];
+		tmpLine.first = clipBeforePerspective(cube_vec4_VCS[firstIndex], cube_vec4_VCS[secondIndex]).first;
+		tmpLine.second = clipBeforePerspective(cube_vec4_VCS[firstIndex], cube_vec4_VCS[secondIndex]).second;
+		// tmpLine.first = cube_vec4_VCS[firstIndex];
+		// tmpLine.second = cube_vec4_VCS[secondIndex];
 		
 		/* compute half width of frustum: left=-width, right=width */
 		/* fovy is radian, and aspectRatio=w/h  */
@@ -558,14 +566,7 @@ void A2::CubeHandler(){
 		// matrix00 = near / width
         // = near / (near x tan(fovy/2) x aspectRatio)
         // = 1 / (tan(fovy/2) x aspectRatio);
-		pair<glm::vec2, glm::vec2 > perspectiveLine;
-		perspectiveLine.first.x = (tmpLine.first.x/tmpLine.first.z)/(tan(fov/2.0f/180.0f*M_PI));
-		perspectiveLine.second.x = (tmpLine.second.x/tmpLine.second.z)/(tan(fov/2.0f/180.0f*M_PI));
-		perspectiveLine.first.y = (tmpLine.first.y/tmpLine.first.z)/(tan(fov/2.0f/180.0f*M_PI));
-		perspectiveLine.second.y = (tmpLine.second.y/tmpLine.second.z)/(tan(fov/2.0f/180.0f*M_PI));
-		
-		setLineColour(vec3(0.8f, 1.0f, 1.0f));
-		drawLine(perspectiveLine.first, perspectiveLine.second);
+		drawPerspectiveLine(tmpLine.first, tmpLine.second, vec3(0.8f, 1.0f, 1.0f));
 	}
 
 
@@ -594,18 +595,14 @@ void A2::GnomonHandler(){
 	glm::vec4 left = (VCS_cube_vertex[axisIndexPair[2].first] + VCS_cube_vertex[axisIndexPair[2].second]) * 0.5f;
 	glm::vec4 up = (VCS_cube_vertex[axisIndexPair[3].first] + VCS_cube_vertex[axisIndexPair[3].second]) * 0.5f;
 
-	// model_base_x = normalize (left - center);
-	// model_base_y = normalize (up - center);
-	// model_base_z = normalize (forward - center);
-	
-	drawPerspectiveLine(center, forward, modelFrame_color[2]);
-	drawPerspectiveLine(center, left, modelFrame_color[0]);
-	drawPerspectiveLine(center, up, modelFrame_color[1]);
+	drawPerspectiveLine(clipBeforePerspective(center, forward).first, clipBeforePerspective(center, forward).second, modelFrame_color[2]);
+	drawPerspectiveLine(clipBeforePerspective(center, left).first, clipBeforePerspective(center, left).second, modelFrame_color[0]);
+	drawPerspectiveLine(clipBeforePerspective(center, up).first, clipBeforePerspective(center, up).second, modelFrame_color[1]);
 
 	// World Gnomon 
-	drawPerspectiveLine(viewTransfer * base_0, viewTransfer * base_z, worldFrame_color[2]);
-	drawPerspectiveLine(viewTransfer * base_0, viewTransfer * base_x, worldFrame_color[0]);
-	drawPerspectiveLine(viewTransfer * base_0, viewTransfer * base_y, worldFrame_color[1]);
+	drawPerspectiveLine(viewTransfer * world_base_0, viewTransfer * world_base_z, worldFrame_color[2]);
+	drawPerspectiveLine(viewTransfer * world_base_0, viewTransfer * world_base_x, worldFrame_color[0]);
+	drawPerspectiveLine(viewTransfer * world_base_0, viewTransfer * world_base_y, worldFrame_color[1]);
 }
 
 //----------------------------------------------------------------------------------------
@@ -618,6 +615,7 @@ void A2::drawPerspectiveLine(glm::vec4 point1, glm::vec4 point2, glm::vec3 color
 	perspectiveLine.second.x = (point2.x/point2.z)/(tan(fov/2.0f/180.0f*M_PI));
 	perspectiveLine.first.y = (point1.y/point1.z)/(tan(fov/2.0f/180.0f*M_PI));
 	perspectiveLine.second.y = (point2.y/point2.z)/(tan(fov/2.0f/180.0f*M_PI));
+	if(!clipAndTtoViewPoint(perspectiveLine)) return;
 	setLineColour(color);
 	drawLine(perspectiveLine.first, perspectiveLine.second);
 }
@@ -640,7 +638,16 @@ void A2::reset(){
 	scale_Y = 1.0f;
 	scale_Z = 1.0f;
 
-	// reset base for model
+	// reset bases
+	world_base_x = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	world_base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+	world_base_z = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+	world_base_0 = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+	view_base_x = glm::vec4(-1.0f, 0.0f, 0.0f, 1.0f);
+	view_base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+	view_base_z = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+	view_base_0 = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	model_base_x = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 	model_base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
@@ -670,8 +677,8 @@ void A2::resetFOV(){
 }
 
 void A2::resetVP(){
-	vp1 = glm::vec2(-0.9f, 0.9f);
-	vp2 = glm::vec2( 0.9f, -0.9f);
+	topLeftVP = glm::vec2(-0.95f, 0.95f);
+	botRightVP = glm::vec2( 0.95f, -0.95f);
 }
 
 void A2::resetMouseLocation(){
@@ -681,10 +688,24 @@ void A2::resetMouseLocation(){
 //----------------------------------------------------------------------------------------
 
 /*
- *  trivial clipping test return 0 for remove, 1 for keep, -1 for reverse keep.
+ *  
  */
-int A2::easyClipping(glm::vec4 *cube_vec4_VCS, std::pair<int, int> *indexPair, int index){
+std::pair<glm::vec4, glm::vec4 > A2::clipBeforePerspective(glm::vec4 &P1, glm::vec4 &P2){
+	// the line is not between the near and far plane
+	if((P1.z < nearPlane && P2.z < nearPlane) || (P1.z > farPlane && P2.z > farPlane))
+	{
+		return {};
+	}
+	glm::vec4 nearPoint = P1.z < P2.z ? P1 : P2;
+	glm::vec4 farPoint = P1.z < P2.z ? P2 : P1;
 
+	if(nearPoint.z < nearPlane){
+		nearPoint = nearPoint + (farPoint - nearPoint) / (farPoint.z - nearPoint.z) * (nearPlane - nearPoint.z);
+	}
+	if(farPoint.z > farPlane){
+		farPoint = farPoint - (farPoint - nearPoint) / (farPoint.z - nearPoint.z) * (farPoint.z - farPlane);
+	}
+	return {nearPoint, farPoint};
 }
 
 //----------------------------------------------------------------------------------------
@@ -693,14 +714,136 @@ int A2::easyClipping(glm::vec4 *cube_vec4_VCS, std::pair<int, int> *indexPair, i
  *  input pair 
  */
 bool A2::clipAndTtoViewPoint(pair<glm::vec2, glm::vec2 > &input2DPair){
+	vec2 P1 = input2DPair.first;
+	vec2 P2 = input2DPair.second;
 
+	GLfloat vp_tl_x, vp_tl_y, vp_br_x, vp_br_y;
+
+	vp_tl_x = -1;
+	vp_tl_y = 1;
+	vp_br_x = 1;
+	vp_br_y = -1;
+
+	
+	// first clip to -1 , 1
+	// first easy check 
+	if((P1.x < vp_tl_x && P2.x < vp_tl_x) || // all left
+		(P1.x > vp_br_x && P2.x > vp_br_x) || // all right
+		(P1.y > vp_tl_y && P2.y > vp_tl_y) || // all top
+		(P1.y < vp_br_y && P2.y < vp_br_y)) // all bot
+		{
+			return false;
+		}
+
+	// Step 1. clip on x = vp_tl_x and vp_br_x
+	sortTwoPoints(P1, P2, 0); // sort points base on x first
+
+	// clip to vp_tl_x, check second only since P1.x > P2.x
+	if(P2.x < vp_tl_x){ // clip required
+			P2 = P2 + 
+				(P1 - P2) * 
+					(vp_tl_x - P2.x) / (
+						P1.x - P2.x);
+	}
+
+	// clip to vp_br_x, check first only since P1.x > P2.x
+	if(P1.x > vp_br_x){ // clip required
+		P1 = P2 + 
+			(P1 - P2) * 
+				(vp_br_x - P2.x) / (
+					P1.x - P2.x);
+	}
+
+	if((P1.x < vp_tl_x && P2.x < vp_tl_x) || // all left
+		(P1.x > vp_br_x && P2.x > vp_br_x) || // all right
+		(P1.y > vp_tl_y && P2.y > vp_tl_y) || // all top
+		(P1.y < vp_br_y && P2.y < vp_br_y)) // all bot
+		{
+			return false;
+		}
+
+
+	// Step 2. clip on y =  vp_tl_y and vp_br_y
+	sortTwoPoints(P1, P2, 1); // sort points base on y 
+
+	// clip to vp_br_y, check second only since P1.y > P2.y
+	if(P2.y < vp_br_y){ // clip required
+			P2 = P2 + 
+				(P1 - P2) * 
+					(vp_br_y - P2.y) / (
+						P1.y - P2.y);
+	}
+
+	// clip to vp_tl_y, check first only since P1.y > P2.y
+	if(P1.y > vp_tl_y){ // clip required
+		P1 = P2 + 
+			(P1 - P2) * 
+				(vp_tl_y - P2.y) / (
+					P1.y - P2.y);
+	}
+
+
+
+	if((P1.x < vp_tl_x && P2.x < vp_tl_x) || // all left
+		(P1.x > vp_br_x && P2.x > vp_br_x) || // all right
+		(P1.y > vp_tl_y && P2.y > vp_tl_y) || // all top
+		(P1.y < vp_br_y && P2.y < vp_br_y)) // all bot
+		{
+			return false;
+		}
+
+
+	// map to view port
+	vp_tl_x = std::min(topLeftVP.x, botRightVP.x);
+	vp_tl_y = std::max(topLeftVP.y, botRightVP.y);
+	vp_br_x = std::max(topLeftVP.x, botRightVP.x);
+	vp_br_y = std::min(topLeftVP.y, botRightVP.y);
+
+
+
+	// clip done ready to draw
+
+	input2DPair.first.x = (P1.x + 1)/2.0f * (vp_br_x - vp_tl_x) + vp_tl_x;
+	input2DPair.first.y = (P1.y + 1)/2.0f * (vp_tl_y - vp_br_y) + vp_br_y;
+	input2DPair.second.x = (P2.x + 1)/2.0f * (vp_br_x - vp_tl_x) + vp_tl_x;
+	input2DPair.second.y = (P2.y + 1)/2.0f * (vp_tl_y - vp_br_y) + vp_br_y;
+	
+	return true;
 }
 
 /*
  *  helper function to sort two points base on x(base = 0) or y (base = 1); 
  */
 void A2::sortTwoPoints(glm::vec2 &P1, glm::vec2 &P2, int base){
-
+	if(base == 0){
+		// sort on x let P1.x > P2.x
+		if(P1.x > P2.x){
+			return;
+		}else{
+			vec2 temp;
+			temp.x = P1.x;
+			temp.y = P1.y;
+			P1.x = P2.x;
+			P1.y = P2.y;
+			P2.x = temp.x;
+			P2.y = temp.y;
+			return;
+		}
+	}else{
+		// sort on y let P1.y > P2.y
+		if(P1.y > P2.y){
+			return;
+		}else{
+			vec2 temp;
+			temp.x = P1.x;
+			temp.y = P1.y;
+			P1.x = P2.x;
+			P1.y = P2.y;
+			P2.x = temp.x;
+			P2.y = temp.y;
+			return;
+		}
+	}
 }
 
 
@@ -731,6 +874,39 @@ glm::mat4 A2::calculateView(){
 void A2::mouseMoveEventHandler(double xPos, double yPos){
 	double offset = xPos - mouse_prev_x;
 	switch(interactionMode){
+		case 0: //Rotate view
+			if(mouse_left_pressed){
+				rotateViewHandler(offset, 0);
+			}
+			if(mouse_mid_pressed){
+				rotateViewHandler(offset, 1);
+			}
+			if(mouse_right_pressed){
+				rotateViewHandler(offset, 2);
+			}
+		break;
+		case 1: //Translate view
+			if(mouse_left_pressed){
+				translateViewHandler(offset, 0);
+			}
+			if(mouse_mid_pressed){
+				translateViewHandler(offset, 1);
+			}
+			if(mouse_right_pressed){
+				translateViewHandler(offset, 2);
+			}
+		break;
+		case 2: //Perspective
+			if(mouse_left_pressed){
+				perspectiveHanlder(offset, 0);
+			}
+			if(mouse_mid_pressed){
+				perspectiveHanlder(offset, 1);
+			}
+			if(mouse_right_pressed){
+				perspectiveHanlder(offset, 2);
+			}
+		break;
 		case 3: //Rotate model
 			if(mouse_left_pressed){
 				rotateModelHandler(offset, 0);
@@ -764,6 +940,11 @@ void A2::mouseMoveEventHandler(double xPos, double yPos){
 				scaleModelHandler(offset, 2);
 			}
 		break;
+		case 6: //Viewport
+			if(mouse_left_pressed){
+				viewPortHandler(xPos, yPos, 1);
+			}
+		break;
 	}
 }
 
@@ -771,14 +952,91 @@ void A2::mouseMoveEventHandler(double xPos, double yPos){
 // mode handlers
 
 void A2::rotateViewHandler(double offset, int axis){
+	GLfloat r = offset/angleBase; // rotation angle
+	glm::vec3 a;
+	switch(axis){
+		case 0:  // x axis
+			a = glm::vec3(view_base_x);
+			break;
+		case 1: // y axis
+			a = glm::vec3(view_base_y);
+			break;
+		case 2: // z axis
+			a = glm::vec3(view_base_z);
+			break;
+	}	
 	
+	// roate along model_base_axis
+	glm::mat4 rotationMatrix = glm::mat4(
+		glm::vec4(cos(r) + a.x*a.x*(1-cos(r)), a.y*a.x*(1-cos(r)) + a.z*sin(r), a.z*a.x*(1-cos(r)) - a.y*sin(r), 0.0f),
+		glm::vec4(a.x*a.y*(1-cos(r)) - a.z*sin(r), cos(r) + a.y*a.y*(1-cos(r)), a.z*a.y*(1-cos(r)) + a.x*sin(r), 0.0f),
+		glm::vec4(a.x*a.z*(1-cos(r)) + a.y*sin(r), a.y*a.z*(1-cos(r)) - a.x*sin(r), cos(r) + a.z*a.z*(1-cos(r)), 0.0f),
+		glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+	);
+
+	// Update cube model base
+	view_base_x = rotationMatrix * view_base_x;
+	view_base_y = rotationMatrix * view_base_y;
+	view_base_z = rotationMatrix * view_base_z;
+
+	// check if cube's centered at the origin. if not translate it to the origin, rotate, and then translate back.
+	if(view_base_0.x == 0 && view_base_0.y == 0 && view_base_0.z == 0){
+		viewTransfer = rotationMatrix * viewTransfer;
+	}else{
+		glm::mat4 translateMatrix1 = glm::mat4(
+			glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+			glm::vec4(-view_base_0.x, -view_base_0.y, -view_base_0.z, 1.0f)
+		);
+		viewTransfer = translateMatrix1 * viewTransfer;
+		viewTransfer = rotationMatrix * viewTransfer;
+		glm::mat4 translateMatrix2 = glm::mat4(
+			glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+			glm::vec4(view_base_0.x, view_base_0.y, view_base_0.z, 1.0f)
+		);
+		viewTransfer = translateMatrix2 * viewTransfer;
+	}
 }
 void A2::translateViewHandler(double offset, int axis){
-
-
+	GLfloat r = offset/angleBase; // rotation angle
+	glm::vec3 a;
+	switch(axis){
+		case 0:  // x axis
+			a = glm::vec3(view_base_x) * r;
+			break;
+		case 1: // y axis
+			a = glm::vec3(view_base_y) * r;
+			break;
+		case 2: // z axis
+			a = glm::vec3(view_base_z) * r;
+			break;
+	}	
+	
+	// roate along model_base_axis
+	glm::mat4 translateMatrix = glm::mat4(
+		glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+		glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+		glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+		glm::vec4(a.x, a.y, a.z, 1.0f)
+	);
+	view_base_0 = translateMatrix * view_base_0;
+	viewTransfer = translateMatrix * viewTransfer;
 }
 void A2::perspectiveHanlder(double offset, int type){
-
+	switch(type){
+		case 0: // fov change
+			fov = std::max(std::min((fov + (float)offset), 160.0f), 5.0f);
+			break;
+		case 1: // change near plane
+			nearPlane = std::max(std::min((nearPlane + (float)offset/numBase), farPlane), 0.0f);
+			break;
+		case 2: // change far plane
+			farPlane = std::max(std::min((farPlane + (float)offset/numBase), 150.0f), nearPlane);
+			break;
+	}
 }
 void A2::rotateModelHandler(double offset, int axis){
 	GLfloat r = offset/angleBase; // rotation angle
@@ -870,7 +1128,20 @@ void A2::scaleModelHandler(double offset, int axis){
 }
 
 void A2::viewPortHandler(double xPos, double yPos, int id){
-	
+	GLfloat new_X = xPos*2.0f/m_windowWidth - 1.0f;
+	GLfloat new_Y = (-yPos*2.0f/m_windowHeight) + 1.0f;
+	new_X = std::max(std::min((new_X), 1.0f), -1.0f);
+	new_Y = std::max(std::min((new_Y), 1.0f), -1.0f);
+	switch(id){
+		case 1: // update vp1
+			topLeftVP.x = new_X;
+			topLeftVP.y = new_Y;
+			break;
+		case 2: // update vp2
+			botRightVP.x = new_X;
+			botRightVP.y = new_Y;			
+			break;
+	}
 }
 
 //----------------------------------------------------------------------------------------

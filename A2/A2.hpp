@@ -80,23 +80,29 @@ protected:
 	// plane info
 	GLfloat nearPlane, farPlane, fov;
 	// viewport info
-	glm::vec2 vp1, vp2;
+	glm::vec2 topLeftVP, botRightVP;
 	GLfloat window_width, window_height;
 	// base v
-	glm::vec4 base_x = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	glm::vec4 base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-	glm::vec4 base_z = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-	glm::vec4 base_0 = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 world_base_x = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 world_base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+	glm::vec4 world_base_z = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+	glm::vec4 world_base_0 = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// perspective vertix in 2D
 	glm::vec2 perspective_cube_vertex_2D[8];
 	glm::vec4 VCS_cube_vertex[8];
 
 	// base for model
-	glm::vec4 model_base_x = glm::vec4(-1.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 model_base_x = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 	glm::vec4 model_base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-	glm::vec4 model_base_z = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+	glm::vec4 model_base_z = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 	glm::vec4 model_base_0 = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+	// base for view
+	glm::vec4 view_base_x = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 view_base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+	glm::vec4 view_base_z = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+	glm::vec4 view_base_0 = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// view info
 	glm::vec3 eye_origin;
@@ -150,9 +156,9 @@ protected:
 
 
 	// calculation helper functions
-	bool clipAndTtoViewPoint(std::pair<glm::vec2, glm::vec2 > &perspectiveLine);
+	bool clipAndTtoViewPoint(std::pair<glm::vec2, glm::vec2 > &input2DPair);
 	void sortTwoPoints(glm::vec2 &P1, glm::vec2 &P2, int base);
-	int easyClipping(glm::vec4 *cube_vec4_VCS, std::pair<int, int> *indexPair, int index);
+	std::pair<glm::vec4, glm::vec4 > clipBeforePerspective(glm::vec4 &P1, glm::vec4 &P2);
 	glm::mat4 calculateView();
 
 	// reset helper
