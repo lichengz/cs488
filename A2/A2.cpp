@@ -753,6 +753,17 @@ void A2::mouseMoveEventHandler(double xPos, double yPos){
 				translateModelHandler(offset, 2);
 			}
 		break;
+		case 5: //Scaling
+		if(mouse_left_pressed){
+				scaleModelHandler(offset, 0);
+			}
+			if(mouse_mid_pressed){
+				scaleModelHandler(offset, 1);
+			}
+			if(mouse_right_pressed){
+				scaleModelHandler(offset, 2);
+			}
+		break;
 	}
 }
 
@@ -844,7 +855,18 @@ void A2::translateModelHandler(double offset, int axis){
 }
 
 void A2::scaleModelHandler(double offset, int axis){
-	
+	offset = offset/m_windowWidth;
+	switch(axis){
+		case 0: // scale on X
+			scale_X = std::max(std::min((scale_X + (float)offset), 2.0f), 0.1f);
+			break;
+		case 1: // scale on Y
+			scale_Y = std::max(std::min((scale_Y + (float)offset), 2.0f), 0.1f);			
+			break;
+		case 2: // scale on Z
+			scale_Z = std::max(std::min((scale_Z + (float)offset), 2.0f), 0.1f);
+			break;
+	}
 }
 
 void A2::viewPortHandler(double xPos, double yPos, int id){
