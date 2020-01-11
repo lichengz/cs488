@@ -593,6 +593,10 @@ void A2::GnomonHandler(){
 	glm::vec4 forward = (VCS_cube_vertex[axisIndexPair[1].first] + VCS_cube_vertex[axisIndexPair[1].second]) * 0.5f;
 	glm::vec4 left = (VCS_cube_vertex[axisIndexPair[2].first] + VCS_cube_vertex[axisIndexPair[2].second]) * 0.5f;
 	glm::vec4 up = (VCS_cube_vertex[axisIndexPair[3].first] + VCS_cube_vertex[axisIndexPair[3].second]) * 0.5f;
+
+	// model_base_x = normalize (left - center);
+	// model_base_y = normalize (up - center);
+	// model_base_z = normalize (forward - center);
 	
 	drawPerspectiveLine(center, forward, modelFrame_color[2]);
 	drawPerspectiveLine(center, left, modelFrame_color[0]);
@@ -638,9 +642,9 @@ void A2::reset(){
 
 	// reset base for model
 
-	model_base_x_i = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	model_base_y_i = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-	model_base_z_i = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+	model_base_x = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	model_base_y = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+	model_base_z = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
 
 	eye_origin = glm::vec3(0.0f, 0.0f, 10.0f);
@@ -718,7 +722,6 @@ glm::mat4 A2::calculateView(){
 		glm::vec4(left.z, up.z, forward.z, 0.0f),
 		glm::vec4(-glm::dot(eye_origin,left), -glm::dot(eye_origin,up), -glm::dot(eye_origin,forward), 1)
 	);
-
 	return view;
 }
 
@@ -771,44 +774,73 @@ void A2::rotateModelHandler(double offset, int axis){
 	glm::vec3 a;
 	switch(axis){
 		case 0:  // x axis
-			a = glm::vec3(1.0f, 0.0f, 0.0f);
+			a = glm::vec3(model_base_x);
 			break;
 		case 1: // y axis
-			a = glm::vec3(0.0f, 1.0f, 0.0f);
+			a = glm::vec3(model_base_y);
 			break;
 		case 2: // z axis
-			a = glm::vec3(0.0f, 0.0f, 1.0f);
+			a = glm::vec3(model_base_z);
 			break;
-	}
+	}	
+	
+	// roate along model_base_axis
+	glm::mat4 rotationMatrix = glm::mat4(
+		glm::vec4(cos(r) + a.x*a.x*(1-cos(r)), a.y*a.x*(1-cos(r)) + a.z*sin(r), a.z*a.x*(1-cos(r)) - a.y*sin(r), 0.0f),
+		glm::vec4(a.x*a.y*(1-cos(r)) - a.z*sin(r), cos(r) + a.y*a.y*(1-cos(r)), a.z*a.y*(1-cos(r)) + a.x*sin(r), 0.0f),
+		glm::vec4(a.x*a.z*(1-cos(r)) + a.y*sin(r), a.y*a.z*(1-cos(r)) - a.x*sin(r), cos(r) + a.z*a.z*(1-cos(r)), 0.0f),
+		glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+	);
 
-	modelTransfer = glm::mat4(
-		glm::vec4(a.x * a.x * (1 - cos(r)) + cos(r),       a.x * a.y * (1 - cos(r)) + a.z * sin(r),  a.x * a.z * (1 - cos(r)) - a.y * sin(r), 0.0f),
-		glm::vec4(a.x * a.y * (1 - cos(r)) - a.z * sin(r), a.y * a.y * (1 - cos(r)) + cos(r),        a.y * a.z * (1 - cos(r)) + a.x * sin(r), 0.0f),
-		glm::vec4(a.x * a.z * (1 - cos(r)) + a.y * sin(r), a.y * a.z * (1 - cos(r)) - a.x * sin(r),  a.z * a.z * (1 - cos(r)) + cos(r),       0.0f),
-		glm::vec4(0.0f,                                    0.0f,                                     0.0f,                                    1.0f)
-	) * modelTransfer;
+	// Update cube model base
+	model_base_x = rotationMatrix * model_base_x;
+	model_base_y = rotationMatrix * model_base_y;
+	model_base_z = rotationMatrix * model_base_z;
+
+	// check if cube's centered at the origin. if not translate it to the origin, rotate, and then translate back.
+	if(model_base_0.x == 0 && model_base_0.y == 0 && model_base_0.z == 0){
+		modelTransfer = rotationMatrix * modelTransfer;
+	}else{
+		glm::mat4 translateMatrix1 = glm::mat4(
+			glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+			glm::vec4(-model_base_0.x, -model_base_0.y, -model_base_0.z, 1.0f)
+		);
+		modelTransfer = translateMatrix1 * modelTransfer;
+		modelTransfer = rotationMatrix * modelTransfer;
+		glm::mat4 translateMatrix2 = glm::mat4(
+			glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+			glm::vec4(model_base_0.x, model_base_0.y, model_base_0.z, 1.0f)
+		);
+		modelTransfer = translateMatrix2 * modelTransfer;
+	}
 }
+
 void A2::translateModelHandler(double offset, int axis){
 	GLfloat r = offset/angleBase; // rotation angle
 	glm::vec3 a;
 	switch(axis){
 		case 0:  // x axis
-			a = glm::vec3(r, 0.0f, 0.0f);
+			a = glm::vec3(model_base_x) * r;
 			break;
 		case 1: // y axis
-			a = glm::vec3(0.0f, r, 0.0f);
+			a = glm::vec3(model_base_y) * r;
 			break;
 		case 2: // z axis
-			a = glm::vec3(0.0f, 0.0f, r);
+			a = glm::vec3(model_base_z) * r;
 			break;
 	}
-
-	modelTransfer = glm::mat4(
+	glm::mat4 translateMatrix = glm::mat4(
 		glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
 		glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
 		glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
 		glm::vec4(a.x, a.y, a.z, 1.0f)
-	) * modelTransfer;
+	);
+	model_base_0 = translateMatrix * model_base_0;
+	modelTransfer = translateMatrix * modelTransfer;
 }
 
 void A2::scaleModelHandler(double offset, int axis){
