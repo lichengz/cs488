@@ -1,0 +1,15 @@
+Compilation:
+
+cd cs488
+premake4 gmake
+make
+cd A1
+premake4 gmake
+make
+./A1
+
+Manual:
+
+All required features were implemented. 
+In addition, I assume that the initial position of avatar, (0, 0) is the center of the grid.
+The entry of the maze is at the bottom.
