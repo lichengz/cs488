@@ -104,6 +104,7 @@ void A1::init()
 
 	initGrid();	
 	initCube();
+	initAvatar();
 
 	// init avatar
 	// Build the avatar shader
@@ -258,19 +259,13 @@ void A1::initCube()
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(indices),
 		indices, GL_STATIC_DRAW );
 
-	// Specify the means of extracting the position values properly.
 	GLint posAttrib = m_shader.getAttribLocation( "position" );
 	glEnableVertexAttribArray( posAttrib );
 	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
 
-	// Reset state to prevent rogue code from messing with *my* 
-	// stuff!
 	glBindVertexArray( 0 );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-
-	// OpenGL has the buffer now, there's no need for us to keep a copy.
-	// delete verts;
 
 	CHECK_GL_ERRORS;
 }
@@ -380,17 +375,18 @@ void A1::reset()
 	maze_height = 1;
 	// reset avatar position
 	avatar_translation = mat4();
+	avatar_pos = glm::vec2(float(DIM)/2.0f, float(DIM)/2.0f);
 	// reset colour
 	initColour();
 	// reset scaling
 	scale = 1.0f;
 	// clear maze
-	avatar_translation = mat4();
 	m.reset();
 }
 
-void A1::drawAvatar()
+void A1::initAvatar()
 {
+	avatar_pos = glm::vec2(float(DIM)/2.0f, float(DIM)/2.0f);
 	// Create the vertex array to record buffer assignments.
 	glGenVertexArrays( 1, &avatar_vao );
 	glBindVertexArray( avatar_vao );
@@ -405,20 +401,20 @@ void A1::drawAvatar()
 
 	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
 
-
-	//glUniform3f(col_uni, color_avatar.r, color_avatar.g, color_avatar.b);
-	//W = glm::translate(W, vec3(avatar_X + 0.5f, 0.5f, avatar_Y + 0.5f));
 	CHECK_GL_ERRORS;
 
 	float R = 0.5f;
-	int stack_amt = 4;
+	//int stack_amt = 20;
 	float stack_angle = (float) (M_PI / stack_amt);
-	int slice_amt = 10;
-	float slice_angle = (float) ( 2 *M_PI / slice_amt);
+	//int sector_amt = 20;
+	float slice_angle = (float) ( 2 *M_PI / sector_amt);
 
 	float x0, x1, x2, x3, y1, y2, y3, y0, z1, z2, z3, z0; 
 	float alpha_x = 0.0f;
 	float alpha_z = 0.0f;
+	
+	GLfloat *coordsList = new GLfloat[stack_amt*sector_amt*18];
+	//GLfloat coordsList[stack_amt*sector_amt*18];
 
 	for( int i = 0;i < stack_amt;i++ ){
 
@@ -428,7 +424,7 @@ void A1::drawAvatar()
 		float rsinznext = R * sin(alpha_z + stack_angle);
 		float z0 = R * cos(alpha_z);
 
-		for( int j = 0;j < slice_amt; j++ ){
+		for( int j = 0;j < sector_amt; j++ ){
 			alpha_x = j * slice_angle;
 
 			x0 = rsinz * cos(alpha_x);
@@ -447,31 +443,31 @@ void A1::drawAvatar()
 			z2 = z1;
 			z3 = z0;
 
-			GLfloat coordsList[] = {
-				x0, y0, z0,
-				x1, y1, z1,
-				x2, y2, z2,
-				x2, y2, z2,
-				x3, y3, z3,
-				x1, y1, z1,
-			};
-
-			glBufferData(GL_ARRAY_BUFFER, sizeof(coordsList), coordsList, GL_STATIC_DRAW);
-
-			glBindVertexArray(avatar_vao);
-
-			//glUniformMatrix4fv(M_uni, 1, GL_FALSE, value_ptr(W));
-			CHECK_GL_ERRORS;
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			
-			glBindVertexArray(0);
-
-		}	
-		
+			coordsList[i*sector_amt*18 + j*18] = x0;
+			coordsList[i*sector_amt*18 + j*18 + 1] = y0;
+			coordsList[i*sector_amt*18 + j*18 + 2] = z0;
+			coordsList[i*sector_amt*18 + j*18 + 3] = x1;
+			coordsList[i*sector_amt*18 + j*18 + 4] = y1;
+			coordsList[i*sector_amt*18 + j*18 + 5] = z1;
+			coordsList[i*sector_amt*18 + j*18 + 6] = x2;
+			coordsList[i*sector_amt*18 + j*18 + 7] = y2;
+			coordsList[i*sector_amt*18 + j*18 + 8] = z2;
+			coordsList[i*sector_amt*18 + j*18 + 9] = x2;
+			coordsList[i*sector_amt*18 + j*18 + 10] = y2;
+			coordsList[i*sector_amt*18 + j*18 + 11] = z2;
+			coordsList[i*sector_amt*18 + j*18 + 12] = x3;
+			coordsList[i*sector_amt*18 + j*18 + 13] = y3;
+			coordsList[i*sector_amt*18 + j*18 + 14] = z3;
+			coordsList[i*sector_amt*18 + j*18 + 15] = x0;
+			coordsList[i*sector_amt*18 + j*18 + 16] = y0;
+			coordsList[i*sector_amt*18 + j*18 + 17] = z0;
+		}		
 	}
-
-	//W = glm::translate(W, vec3(-avatar_X - 0.5f, - 0.5f, - avatar_Y - 0.5f));
+	glBufferData( GL_ARRAY_BUFFER, stack_amt*sector_amt*18*sizeof(GLfloat), coordsList, GL_STATIC_DRAW );
 	glBindVertexArray(0);
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+	delete [] coordsList;
 	CHECK_GL_ERRORS;
 }
 
@@ -560,8 +556,11 @@ void A1::draw()
 		W =  W * avatar_translation;
 		
 		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
-		//glDrawElements( GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0 );
-		drawAvatar();
+		glBindVertexArray(avatar_vao);
+		CHECK_GL_ERRORS;
+		glDrawArrays(GL_TRIANGLES, 0, 6*stack_amt*sector_amt);
+			
+
 		glBindVertexArray( 0 );
 
 	m_shader.disable();

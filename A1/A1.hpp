@@ -33,7 +33,7 @@ private:
 	void initColour();
 	void initGrid();
 	void initCube();
-	void drawAvatar();
+	void initAvatar();
 	void dig();
 	void reset();
 
@@ -57,6 +57,8 @@ private:
 	GLuint cube_ebo; // Element Buffer Object
 
 	// Fields related to the avatar
+	int stack_amt = 20;
+	int sector_amt = 20;
 	GLuint avatar_vao; // Vertex Array Object
 	GLuint avatar_vbo; // Vertex Buffer Object
 	GLuint avatar_ebo; // Element Buffer Object
