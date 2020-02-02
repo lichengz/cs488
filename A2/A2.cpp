@@ -497,11 +497,46 @@ bool A2::keyInputEvent (
 		int action,
 		int mods
 ) {
-	bool eventHandled(false);
+	bool eventHandled(true);
 
 	// Fill in with event handling code...
 	if( action == GLFW_PRESS ) {
-		
+		// Reset
+		if (key == GLFW_KEY_A) {
+			reset();
+		}
+		// Quit
+		if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
+		// Rotate View (O)
+		if (key == GLFW_KEY_O) {
+			interactionMode = 0;
+		}
+		// Translate View (E)
+		if (key == GLFW_KEY_E) {
+			interactionMode = 1;
+		}
+		// Perspective (P)
+		if (key == GLFW_KEY_P) {
+			interactionMode = 2;
+		}
+		// Rotate Model (R)
+		if (key == GLFW_KEY_R) {
+			interactionMode = 3;
+		}
+		// Translate Model (T)
+		if (key == GLFW_KEY_T) {
+			interactionMode = 4;
+		}
+		// Scale Model (S)
+		if (key == GLFW_KEY_S) {
+			interactionMode = 5;
+		}
+		// Viewport (V)
+		if (key == GLFW_KEY_V) {
+			interactionMode = 6;
+		}
 	}
 
 
@@ -615,9 +650,10 @@ void A2::drawPerspectiveLine(glm::vec4 point1, glm::vec4 point2, glm::vec3 color
 	perspectiveLine.second.x = (point2.x/point2.z)/(tan(fov/2.0f/180.0f*M_PI));
 	perspectiveLine.first.y = (point1.y/point1.z)/(tan(fov/2.0f/180.0f*M_PI));
 	perspectiveLine.second.y = (point2.y/point2.z)/(tan(fov/2.0f/180.0f*M_PI));
-	if(!clipAndTtoViewPoint(perspectiveLine)) return;
-	setLineColour(color);
-	drawLine(perspectiveLine.first, perspectiveLine.second);
+	if(ClipAgainstViewVolumn(perspectiveLine)){
+		setLineColour(color);
+		drawLine(perspectiveLine.first, perspectiveLine.second);
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -691,11 +727,12 @@ void A2::resetMouseLocation(){
  *  
  */
 std::pair<glm::vec4, glm::vec4 > A2::clipBeforePerspective(glm::vec4 &P1, glm::vec4 &P2){
-	// the line is not between the near and far plane
+	// Trivial accept and reject
 	if((P1.z < nearPlane && P2.z < nearPlane) || (P1.z > farPlane && P2.z > farPlane))
 	{
 		return {};
 	}
+	// clip against near and far planes
 	glm::vec4 nearPoint = P1.z < P2.z ? P1 : P2;
 	glm::vec4 farPoint = P1.z < P2.z ? P2 : P1;
 
@@ -713,7 +750,7 @@ std::pair<glm::vec4, glm::vec4 > A2::clipBeforePerspective(glm::vec4 &P1, glm::v
  *  view volume clipping and transfer to view point helper function.
  *  input pair 
  */
-bool A2::clipAndTtoViewPoint(pair<glm::vec2, glm::vec2 > &input2DPair){
+bool A2::ClipAgainstViewVolumn(pair<glm::vec2, glm::vec2 > &input2DPair){
 	vec2 P1 = input2DPair.first;
 	vec2 P2 = input2DPair.second;
 
@@ -726,7 +763,7 @@ bool A2::clipAndTtoViewPoint(pair<glm::vec2, glm::vec2 > &input2DPair){
 
 	
 	// first clip to -1 , 1
-	// first easy check 
+	// trivial reject
 	if((P1.x < vp_tl_x && P2.x < vp_tl_x) || // all left
 		(P1.x > vp_br_x && P2.x > vp_br_x) || // all right
 		(P1.y > vp_tl_y && P2.y > vp_tl_y) || // all top

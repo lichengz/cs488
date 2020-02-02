@@ -156,7 +156,7 @@ protected:
 
 
 	// calculation helper functions
-	bool clipAndTtoViewPoint(std::pair<glm::vec2, glm::vec2 > &input2DPair);
+	bool ClipAgainstViewVolumn(std::pair<glm::vec2, glm::vec2 > &input2DPair);
 	void sortTwoPoints(glm::vec2 &P1, glm::vec2 &P2, int base);
 	std::pair<glm::vec4, glm::vec4 > clipBeforePerspective(glm::vec4 &P1, glm::vec4 &P2);
 	glm::mat4 calculateView();
