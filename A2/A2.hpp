@@ -1,4 +1,4 @@
-// Spring 2019
+// Winter 2020
 
 #pragma once
 
@@ -138,7 +138,7 @@ protected:
 	GLfloat angleBase;
 	GLfloat numBase = 50.0f;
 	// A2 functions:
-	
+
 	// handlers:
 	void CubeHandler(); // helper functin that process the cube data and draw the cube
 	void GnomonHandler(); // helper function that process model frame info and draw the axis

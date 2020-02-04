@@ -1,0 +1,17 @@
+Compilation:
+
+cd cs488
+premake4 gmake
+make
+cd A2
+premake4 gmake
+make
+./A2
+
+Manual:
+
+All required features were implemented. Tested on lab machine gl38.
+I assume the following:
+-The initial position of the cube is at the center, with no rotation.
+-Scaling ranges from 0.1 to 2.0
+-The initial viewport has a 5% margin around the top, bottom, left and right edges, which means it takes over 81% (0.9 * 0.9 = 0.81) of the window area.
