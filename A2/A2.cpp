@@ -630,6 +630,11 @@ void A2::GnomonHandler(){
 	glm::vec4 left = (VCS_cube_vertex[axisIndexPair[2].first] + VCS_cube_vertex[axisIndexPair[2].second]) * 0.5f;
 	glm::vec4 up = (VCS_cube_vertex[axisIndexPair[3].first] + VCS_cube_vertex[axisIndexPair[3].second]) * 0.5f;
 
+	// Normalize the Gnomon vector, keep it unscaled
+	forward = center + glm::normalize(forward-center);
+	left = center + glm::normalize(left-center);
+	up = center + glm::normalize(up-center);
+
 	drawPerspectiveLine(clipBeforePerspective(center, forward).first, clipBeforePerspective(center, forward).second, modelFrame_color[2]);
 	drawPerspectiveLine(clipBeforePerspective(center, left).first, clipBeforePerspective(center, left).second, modelFrame_color[0]);
 	drawPerspectiveLine(clipBeforePerspective(center, up).first, clipBeforePerspective(center, up).second, modelFrame_color[1]);
