@@ -110,15 +110,8 @@ protected:
 	glm::vec3 cube_origin;
 
 	// color info
-	glm::vec3 framecolorbase_x1 = glm::vec3(0.0f, 1.0f, 0.0f);
-	glm::vec3 framecolorbase_y1 = glm::vec3(1.0f, 0.0f, 0.0f);
-	glm::vec3 framecolorbase_z1 = glm::vec3(0.0f, 0.0f, 1.0f);
-	glm::vec3 framecolorbase_x2 = glm::vec3(0.0f, 1.0f, 1.0f);
-	glm::vec3 framecolorbase_y2 = glm::vec3(1.0f, 1.0f, 0.0f);
-	glm::vec3 framecolorbase_z2 = glm::vec3(1.0f, 0.0f, 1.0f);
-
-	glm::vec3 modelFrame_color[3] = {framecolorbase_x1, framecolorbase_y1, framecolorbase_z1};
-	glm::vec3 worldFrame_color[3] = {framecolorbase_x2, framecolorbase_y2, framecolorbase_z2};
+	glm::vec3 modelGnomonColor[3] = {glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)};
+	glm::vec3 worldGnomonColor[3] = {glm::vec3(0.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 1.0f)};
 
 	// cube sacle
 	GLfloat scale_X, scale_Y, scale_Z;
