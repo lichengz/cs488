@@ -96,7 +96,6 @@ protected:
 	bool undo_succeed = true;
 	bool redo_succeed = true;
 
-
 	// variables for mouse data
 	double mouse_prev_x;
 	double mouse_prev_y;
@@ -115,9 +114,6 @@ protected:
 
 	glm::vec4 root_ori;
 	glm::mat4 root_ori_m;
-
-	// variable for ini location and transformtaion
-	glm::mat4 ini_translation;
 
 	// variable for redo/undo
 	int totalNode;
@@ -145,20 +141,21 @@ protected:
 
 	// mouse movement handler
 	void mouseMoveEventHandler(double xPos, double yPos);
-	void rotateP_OHandler(double offsetX, double offsetY, int axis);
+	void P_OHandler(double offsetX, double offsetY, int axis);
 	void rotateJointHandler(double offsetX, double offsetY,  int type);
 	
 
 	// update helper function
-	void selectNodeById(SceneNode &node, unsigned int id);
+	void findNodeBelowJoint(SceneNode &node, unsigned int id);
 	void updateShaderUniforms(const ShaderProgram & shader, const GeometryNode & node, const glm::mat4 & viewMatrix);
-	void rotateJointHelper(GLfloat angle, SceneNode & node, int type);
+	void rotateJoint(GLfloat angle, SceneNode & node, int type);
 	
-	void recursiveRotate(glm::mat4 revserseTargetMatrix, SceneNode& root, glm::mat4 rotatematrix);
+	void recursiveRotate(glm::mat4 trans, SceneNode& root, glm::mat4 rotatematrix);
 	SceneNode * findNodeById(SceneNode& rootNode, unsigned int id);
 
 	// helper function for undo and redo
 	void undo();
 	void redo();
+	void rotateJoints(std::vector<GLfloat> angleVector);
 };
 
