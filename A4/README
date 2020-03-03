@@ -1,0 +1,25 @@
+Compilation:
+Steps:
+    1. $ premake4 gmake
+    2. $ make
+    3. $ ./A4 sample.lua
+
+Tested on lab machine: gl33
+===============================================================================
+Manual:
+
+All required features implemented. nonhier.png, macho-cows.png, simple-cows.png and macho-cows-bb.png
+can be found in the Assets/ directory. sample.lua and sample.png are placed in the A4 root directory.
+
+Extra Feature: Mirror reflections.
+I add an additional argument in the PhongMaterial, called reflectivity, which is a real number ranging from 0 to 1.
+In the sample.lua file, both material lake_blue and waterball_blue have a reflectivity of 0.5.
+In the A4.cpp file, the function glm::vec3 color is called recursively if the material's reflectivity is greater than 0,
+with a max recursion times = 10.
+
+Bounding Volume Code:
+Uncomment #define RENDER_BOUNDING_VOLUMES in mesh.cpp to render a spherical bounding volume.
+
+Test Scene: sample.lua
+There's a lake in the center of a grass plane, surrounded by stones. A blue ball flows in the middle of air.
+The blue ball has a shiny surface. Both the lake and the ball reflect lights like mirrors. 

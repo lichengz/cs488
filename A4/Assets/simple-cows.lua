@@ -1,9 +1,9 @@
 -- A simple test scene featuring some spherical cows grazing
 -- around Stonehenge.  "Assume that cows are spheres..."
 
-stone = gr.material({0.8, 0.7, 0.7}, {0.0, 0.0, 0.0}, 0)
-grass = gr.material({0.1, 0.7, 0.1}, {0.0, 0.0, 0.0}, 0)
-hide = gr.material({0.84, 0.6, 0.53}, {0.3, 0.3, 0.3}, 20)
+stone = gr.material({0.8, 0.7, 0.7}, {0.0, 0.0, 0.0}, 0, 0)
+grass = gr.material({0.1, 0.7, 0.1}, {0.0, 0.0, 0.0}, 0, 0)
+hide = gr.material({0.84, 0.6, 0.53}, {0.3, 0.3, 0.3}, 20, 0)
 
 -- ##############################################
 -- the arch
@@ -62,7 +62,7 @@ scene:rotate('X', 23)
 
 -- the floor
 
-plane = gr.mesh( 'plane', 'plane.obj' )
+plane = gr.mesh( 'plane', './Assets/plane.obj' )
 scene:add_child(plane)
 plane:set_material(grass)
 plane:scale(30, 30, 30)
@@ -71,7 +71,7 @@ plane:scale(30, 30, 30)
 -- buckyball at the centre of the real Stonehenge was destroyed
 -- in the great fire of 733 AD.
 
-buckyball = gr.mesh( 'buckyball', 'buckyball.obj' )
+buckyball = gr.mesh( 'buckyball', './Assets/buckyball.obj' )
 scene:add_child(buckyball)
 buckyball:set_material(stone)
 buckyball:scale(1.5, 1.5, 1.5)
